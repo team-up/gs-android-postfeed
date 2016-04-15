@@ -1,29 +1,104 @@
 package com.estsoft.teamup.postfeed;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.View;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity {
+import com.bluelinelabs.logansquare.LoganSquare;
+import com.estsoft.teamup.postfeed.api.Api;
+import com.estsoft.teamup.postfeed.hide.TeamUP;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+
+import okhttp3.ResponseBody;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class MainActivity extends AppCompatActivity implements TextWatcher {
+
+    private TextView generateTokenStatus;
+    private EditText feedContentEditText;
+    private Button postFeedButton;
+    private TextView postFeedStatus;
+    private boolean isTokenGenerated;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        generateTokenStatus = (TextView)findViewById(R.id.generate_token_status);
+        feedContentEditText = (EditText)findViewById(R.id.feed_content_edittext);
+        feedContentEditText.addTextChangedListener(this);
+        postFeedButton = (Button)findViewById(R.id.post_feed_button);
+        postFeedStatus = (TextView)findViewById(R.id.post_feed_status);
+    }
 
-       FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+    public void generateToken(View view){
+        Api.getInstance().getToken(TeamUP.CLIENT_ID, TeamUP.CLIENT_SECRET, TeamUP.ID, TeamUP.PASSWORD, new Callback<ResponseBody>() {
             @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public void onResponse(retrofit2.Call<ResponseBody> call, Response<ResponseBody> response) {
+                try {
+                    String responseString = ResponseParser.toString(response);
+                    if(!responseString.isEmpty()){
+                        TokenInfo tokenInfo = LoganSquare.parse(responseString, TokenInfo.class);
+                        TokenPreferences.getInstance().setAccessToken(tokenInfo.getAccessToken());
+                        TokenPreferences.getInstance().setRefreshToken(tokenInfo.getRefreshToken());
+                        TokenPreferences.getInstance().setExpireIn(tokenInfo.getExpire());
+                        TokenPreferences.getInstance().setTokenType(tokenInfo.getTokenType());
+
+                        // refresh UI
+                        isTokenGenerated = true;
+                        generateTokenStatus.setText("token generated!");
+                        if(!feedContentEditText.getText().toString().isEmpty()) {
+                            postFeedButton.setEnabled(true);
+                        }
+                    }
+                } catch (IOException e) {
+                    Log.d("TeamUP", "getToken response parsing Error");
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ResponseBody> call, Throwable t) {
+
+            }
+        });
+    }
+
+    public void postFeed(View view){
+        String message = feedContentEditText.getText().toString();
+        Api.getInstance().postFeed(TeamUP.FEEDGROUP_SEQUENCE, TeamUP.TYPE_NORMAL, message, null, null, null, TeamUP.ALERT_OFF, new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(retrofit2.Call<ResponseBody> call, Response<ResponseBody> response) {
+                try {
+                    String responseString = ResponseParser.toString(response);
+                    if(!responseString.isEmpty()){
+                        long feed = new JSONObject(responseString).getLong("feed"); // posted feed number
+
+                        // refresh UI
+                        postFeedStatus.setText("new feed posted!");
+                    }
+                } catch (IOException e) {
+                    Log.d("TeamUP", "postFeed response parsing error");
+                } catch (JSONException e) {
+                    Log.d("TeamUP", "postFeed feed number parsing error");
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ResponseBody> call, Throwable t) {
+
             }
         });
     }
@@ -48,5 +123,26 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+        if(isTokenGenerated) {
+            if (s.toString().isEmpty()) {
+                postFeedButton.setEnabled(false);
+            } else {
+                postFeedButton.setEnabled(true);
+            }
+        }
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+
     }
 }
