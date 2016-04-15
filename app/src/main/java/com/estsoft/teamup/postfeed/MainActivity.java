@@ -14,7 +14,6 @@ import android.widget.TextView;
 
 import com.bluelinelabs.logansquare.LoganSquare;
 import com.estsoft.teamup.postfeed.api.Api;
-import com.estsoft.teamup.postfeed.hide.TeamUP;
 
 import org.json.JSONException;
 import org.json.JSONObject;
