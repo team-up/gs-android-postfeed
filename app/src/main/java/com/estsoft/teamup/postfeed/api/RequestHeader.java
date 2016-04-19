@@ -5,7 +5,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
 import com.estsoft.teamup.postfeed.Application;
-import com.estsoft.teamup.postfeed.TokenPreferences;
+import com.estsoft.teamup.postfeed.util.TokenPreferences;
 
 /**
  * Created by click on 2016-04-12.
