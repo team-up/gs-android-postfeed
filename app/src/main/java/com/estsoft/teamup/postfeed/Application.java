@@ -2,9 +2,6 @@ package com.estsoft.teamup.postfeed;
 
 import android.content.Context;
 
-/**
- * Created by click on 2016-04-12.
- */
 public class Application extends android.app.Application {
 
     private static Application instance;

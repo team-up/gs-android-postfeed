@@ -9,38 +9,56 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
-/**
- * Created by click on 2016-04-12.
- */
 public class Api {
-    public static final String AUTH_BASE_URL = "https://auth.tmup.com/";
-    public static final String EDGE_BASE_URL = "https://edge.tmup.com/";
+    private static final Api instance = new Api();
+    private static final String AUTH_BASE_URL = "https://auth.tmup.com/";
+    private static final String EDGE_BASE_URL = "https://edge.tmup.com/";
+    private static RequestService authService = new Retrofit.Builder()
+            .baseUrl(AUTH_BASE_URL)
+            .addConverterFactory(JacksonConverterFactory.create())
+            .build()
+            .create(RequestService.class);
 
-    public Api() {
+    private static RequestService edgeService = new Retrofit.Builder()
+            .baseUrl(EDGE_BASE_URL)
+            .addConverterFactory(JacksonConverterFactory.create())
+            .build()
+            .create(RequestService.class);
+
+    private Api() {
 
     }
-
-    public static final Api instance = new Api();
 
     public static Api getInstance(){
         return instance;
     }
 
+    public static RequestService getAuthService() {
+        return authService;
+    }
+
+    public RequestService getEdgeService(){
+        return edgeService;
+    }
+
     public void getToken(String clientId, String clientSecret, String id, String password, Callback<ResponseBody> callback){
-        Retrofit authRetrofit = new Retrofit.Builder()
-                .baseUrl(AUTH_BASE_URL)
-                .addConverterFactory(JacksonConverterFactory.create())
-                .build();
-        RequestService service = authRetrofit.create(RequestService.class);
-        Call<ResponseBody> call = service.getToken(clientId, clientSecret, id, password);
+        Call<ResponseBody> call = getAuthService().getToken(clientId, clientSecret, id, password);
+        call.enqueue(callback);
+    }
+
+    public void getTeams(Callback<ResponseBody> callback){
+        Call<ResponseBody> call = getAuthService().getTeams(RequestHeader.getInstance().getAuthValue(), RequestHeader.getInstance().getUAValue());
+        call.enqueue(callback);
+    }
+
+    public void getFeedGroups(long teamIndex, Callback<ResponseBody> callback){
+        Call<ResponseBody> call = getEdgeService().getFeedGroups(RequestHeader.getInstance().getAuthValue(), RequestHeader.getInstance().getUAValue(), teamIndex);
         call.enqueue(callback);
     }
 
@@ -63,28 +81,7 @@ public class Api {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        OkHttpClient.Builder httpClient = new OkHttpClient().newBuilder()
-                .addInterceptor(new Interceptor() {
-                    @Override
-                    public okhttp3.Response intercept(Interceptor.Chain chain) throws IOException {
-                        okhttp3.Request original = chain.request();
-                        okhttp3.Request request = original.newBuilder()
-                                .header(RequestHeader.AUTHORIZATION, RequestHeader.getInstance().getAuth())
-                                .header(RequestHeader.USERAGENT, RequestHeader.getInstance().getUserAgent())
-                                .method(original.method(), original.body())
-                                .build();
-                        return chain.proceed(request);
-                    }
-                });
-
-        Retrofit edgeRetrofit = new Retrofit.Builder()
-                .baseUrl(EDGE_BASE_URL)
-                .client(httpClient.build())
-                .addConverterFactory(JacksonConverterFactory.create())
-                .build();
-        RequestService service = edgeRetrofit.create(RequestService.class);
-        Call<ResponseBody> call = service.postFeed(feedgroup, type, body);
+        Call<ResponseBody> call = getEdgeService().postFeed(RequestHeader.getInstance().getAuthValue(), RequestHeader.getInstance().getUAValue(), feedgroup, type, body);
         call.enqueue(callback);
     }
 }

@@ -7,23 +7,19 @@ import android.content.pm.PackageManager;
 import com.estsoft.teamup.postfeed.Application;
 import com.estsoft.teamup.postfeed.util.TokenPreferences;
 
-/**
- * Created by click on 2016-04-12.
- */
 public class RequestHeader {
     public static final String AUTHORIZATION = "Authorization";
     public static final String USERAGENT = "User-Agent";
-
     private static RequestHeader instance;
-    private TokenPreferences mTokenPrefs;
+    private TokenPreferences tokenPrefs;
     private PackageInfo pkgInfo;
-    private Context mContext;
+    private Context context;
 
     private RequestHeader(){
-        mContext = Application.getContext();
-        mTokenPrefs = TokenPreferences.getInstance();
+        context = Application.getContext();
+        tokenPrefs = TokenPreferences.getInstance();
         try {
-            pkgInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+            pkgInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
@@ -37,11 +33,11 @@ public class RequestHeader {
         return instance;
     }
 
-    public String getAuth(){
-        return mTokenPrefs.getTokenType() + " " + mTokenPrefs.getAccessToken();
+    public String getAuthValue(){
+        return tokenPrefs.getTokenType() + " " + tokenPrefs.getAccessToken();
     }
 
-    public String getUserAgent(){
+    public String getUAValue(){
         String httpAgent = System.getProperty("http.agent");
         String dalvik = httpAgent.substring(0, httpAgent.indexOf("(")).trim();
         httpAgent = httpAgent.substring(httpAgent.indexOf("("));

@@ -1,8 +1,5 @@
 package com.estsoft.teamup.postfeed.api;
 
-/**
- * Created by click on 2016-04-12.
- */
 public class OAuth2 {
     // params
     public static final String PARAM_NAME_CLIENT_ID = "client_id";
